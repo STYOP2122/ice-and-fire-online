@@ -13,7 +13,8 @@
  #btn-back svg{width:18px;height:18px;vertical-align:middle;margin-right:6px}
  @media(max-height:500px){#room-bar{top:28px;padding:4px;font-size:11px}#room-status{max-width:230px}}
  `;document.head.append(css);
- const $=id=>document.getElementById(id);let peer,conn,role='',timer,heartbeat,lastSeen=0;
+ const $=id=>document.getElementById(id);let peer,conn,stateConn,role='',timer,heartbeat,lastSeen=0;
+ let snapshotSequence=0,lastSnapshot=-1,lastPropsAt=0;
  const down=new Set(), remoteDown=new Set();let applying=false, sceneVersion=0, remoteVersion=-1, pendingScene=null, ready=false, lastScene=null;
  const status=t=>$('room-status').textContent=t;
  const key=(code,type)=>{const e=new KeyboardEvent(type,{bubbles:true,cancelable:true});Object.defineProperty(e,'keyCode',{value:code});Object.defineProperty(e,'which',{value:code});Object.defineProperty(e,'roomRemote',{value:true});window.dispatchEvent(e);};
@@ -21,7 +22,7 @@
  function send(d){if(conn?.open)conn.send(d);}
  function cleanup(message='Вы вышли из комнаты. Можно играть на одном устройстве.'){
   clearTimeout(timer);clearInterval(heartbeat);release();down.clear();role='';delete document.body.dataset.roomRole;delete document.body.dataset.gameActive;
-  const old=peer;peer=null;conn=null;old?.destroy();
+  const old=peer;peer=null;conn=null;stateConn=null;old?.destroy();lastSnapshot=-1;
   ready=false;pendingScene=null;remoteVersion=-1;applying=false;
   const game=window.icefireGame;if(game){game.paused=false;game.state.fading=false;game.input.enabled=true;}
 $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disabled=false;$('room-leave').hidden=true;$('room-copy').hidden=true;status(message);
@@ -34,7 +35,7 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
  function wire(c){
   conn=c;c.on('error',()=>cleanup('Ошибка соединения. Создайте комнату заново.'));
   c.on('close',()=>{if(conn===c)cleanup('Второй игрок отключился.');});
-  c.on('open',()=>{clearTimeout(timer);lastSeen=Date.now();heartbeat=setInterval(()=>{send({t:'ping'});if(role==='host'&&Date.now()-lastSeen>2500)release();},700);});
+  c.on('open',()=>{clearTimeout(timer);lastSeen=Date.now();$('room-id').blur();window.icefireGame?.canvas?.focus();heartbeat=setInterval(()=>{send({t:'keys',keys:[...down]});if(role==='host'&&Date.now()-lastSeen>2500)release();},100);});
   c.on('data',d=>{
    if(!d||typeof d!=='object')return;lastSeen=Date.now();
    if(d.t==='scene'&&role==='guest')receiveScene(d);
@@ -53,16 +54,18 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
  $('room-create').onclick=()=>{
   if(!window.icefireGame?.isBooted){status('Дождитесь загрузки игры.');return;}
   if(!begin('host'))return;
-  if(window.icefireGame){window.icefireGame.stage.disableVisibilityChange=true;window.icefireGame.settings.controls='dual';window.icefireGame.settingsSignal?.dispatch('controls');}
+  if(window.icefireGame){window.icefireGame.stage.disableVisibilityChange=true;window.icefireGame.settings.controls='keyboard';window.icefireGame.settingsSignal?.dispatch('controls');}
   sceneVersion++;lastScene=describeScene();
   const id=String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000).padStart(3,'0');
   $('room-id').value=id;$('room-id').disabled=true;status('Создаём комнату…');
   peer=new Peer('icefire-state-v1-'+id);peer.on('error',e=>cleanup(e.type==='unavailable-id'?'Этот ID уже занят. Нажмите «Создать комнату» ещё раз.':'Не удалось создать комнату. Проверьте подключение к интернету.'));
   peer.on('open',()=>{clearTimeout(timer);$('room-copy').hidden=false;status('Комната '+id+' · Вы — Огонёк. Ждём Капельку…');});
   peer.on('connection',c=>{
+   if(c.label==='state'){c.close();return;}
    if(c.metadata?.game!==location.pathname||c.metadata?.protocol!==1){c.on('open',()=>{c.send({t:'wrong-game'});setTimeout(()=>c.close(),200);});return;}
    if(conn){c.on('open',()=>{c.send({t:'busy'});setTimeout(()=>c.close(),200);});return;}
    wire(c);c.on('open',()=>{
+    stateConn=peer.connect(c.peer,{label:'state',serialization:'json',reliable:false});
     ready=false;sendScene();
     status('Вдвоём · Вы — Огонёк (стрелки). Выбирайте уровень на этом экране.');
    });
@@ -73,6 +76,10 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
   if(!window.icefireGame?.isBooted){status('Дождитесь загрузки игры.');return;}
   if(!begin('guest'))return;status('Подключаемся к '+id+'…');
   peer=new Peer();peer.on('error',()=>cleanup('Комната не найдена или сеть блокирует соединение. Проверьте ID.'));
+  peer.on('connection',c=>{
+   if(c.label!=='state'||c.peer!=='icefire-state-v1-'+id){c.close();return;}
+   stateConn=c;c.on('data',d=>{if(d?.t==='snapshot')applySnapshot(d);});
+  });
   peer.on('open',()=>wire(peer.connect('icefire-state-v1-'+id,{reliable:true,metadata:{game:location.pathname,protocol:1}})));
 
  };
@@ -107,7 +114,7 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
   const instance=game.state.states[name];
   return {t:'scene',v:sceneVersion,name,module:instance?.constructor?.icefireModule,
    args:clone(args||[name,true,false,...(state?.levelData?[state.levelData]:[])]),
-   temple:clone(game.currentTemple),settings:{...game.settings,controls:'dual'}};
+   temple:clone(game.currentTemple),settings:{...game.settings,controls:'keyboard'}};
  }
  function sendScene(){
   if(role!=='host')return;
@@ -120,7 +127,7 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
   const game=window.icefireGame;
   window.require([d.module],State=>{
    if(role!=='guest'||pendingScene!==d)return;
-   if(d.settings&&typeof d.settings==='object')Object.assign(game.settings,d.settings,{controls:'dual'});
+   if(d.settings&&typeof d.settings==='object')Object.assign(game.settings,d.settings,{controls:'keyboard'});
    if(d.temple&&typeof d.temple==='object')game.currentTemple=d.temple;
    game.stage.disableVisibilityChange=true;
    applying=true;
@@ -151,35 +158,46 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
   }
   visit(level,[],0);
   // Collectibles live in display layers rather than the level's object list.
-  function layer(o,path,depth){if(!o||depth>8)return;if(!seen.has(o)){seen.add(o);result.push([path,o]);}o.children?.forEach((v,i)=>layer(v,path.concat('children',i),depth+1));}
+  function layer(o,path,depth){if(!o||depth>8)return;if(!seen.has(o)&&(o.body||o.options||o.collected!==undefined)){seen.add(o);result.push([path,o]);}o.children?.forEach((v,i)=>layer(v,path.concat('children',i),depth+1));}
   const layers=window.icefireGame?.layers;if(layers)for(const k of Object.keys(layers))layer(layers[k],['layers',k],0);
   return result;
  }
  function snapshot(){
   const game=window.icefireGame,world=game?.physics?.box2d;
-  if(game?.state.current!=='level'||!world?.world||(conn?.dataChannel?.bufferedAmount||0)>65536)return;
+  if(game?.state.current!=='level'||!world?.world||!stateConn?.open||(stateConn.dataChannel?.bufferedAmount||0)>8192)return;
   const bodies=world.getBodies().filter(b=>b.GetType()!==0).map(b=>{
    const p=b.GetPosition(),v=b.GetLinearVelocity();
    return [b.icefireId,p.x,p.y,b.GetAngle(),v.x,v.y,b.GetAngularVelocity(),b.IsActive()];
   });
-  const props=objects().map(([path,o])=>{
+  const includeProps=performance.now()-lastPropsAt>250;
+  const props=includeProps?objects().map(([path,o])=>{
    const values={};for(const k of flags)if(typeof o[k]==='boolean'||typeof o[k]==='number'||typeof o[k]==='string')values[k]=o[k];
    return [path,values];
-  }).filter(([,values])=>Object.keys(values).length);
-  send({t:'snapshot',v:sceneVersion,bodies,props,paused:game.paused});
+  }).filter(([,values])=>Object.keys(values).length):[];
+  if(includeProps)lastPropsAt=performance.now();
+  stateConn.send({t:'snapshot',seq:++snapshotSequence,v:sceneVersion,bodies,props,paused:game.paused});
  }
  function applySnapshot(d){
   if(!ready||d.v!==remoteVersion||!Array.isArray(d.bodies)||!Array.isArray(d.props))return;
+  if(!Number.isInteger(d.seq)||d.seq<=lastSnapshot)return;lastSnapshot=d.seq;
   const game=window.icefireGame,world=game?.physics?.box2d;
   if(game.state.current!=='level'||!world?.world||world.world.IsLocked())return;
   const bodies=new Map(world.getBodies().map(b=>[b.icefireId,b]));
   for(const row of d.bodies){
    if(!Array.isArray(row)||row.length!==8||!row.slice(0,7).every(Number.isFinite))continue;
    const [id,x,y,a,vx,vy,av,active]=row,b=bodies.get(id);if(!b)continue;
-   b.SetTransformXYRadians(x,y,a);const velocity=b.GetLinearVelocity().Clone();velocity.x=vx;velocity.y=vy;b.SetLinearVelocity(velocity);b.SetAngularVelocity(av);
+   const own=game.level?.pers2?.body?.data===b;
+   const position=b.GetPosition(),error=Math.hypot(position.x-x,position.y-y);
+   // Keep local input responsive; small differences converge without rewinding
+   // the guest's character to an older host position on every packet.
+   if(!own||!down.size||error>1.5){
+    const blend=own&&error < 3 ? 0.25 : 1;
+    b.SetTransformXYRadians(position.x+(x-position.x)*blend,position.y+(y-position.y)*blend,a);
+    if(!own||!down.size||error>3){const velocity=b.GetLinearVelocity().Clone();velocity.x=vx;velocity.y=vy;b.SetLinearVelocity(velocity);b.SetAngularVelocity(av);}
+   }
    if(typeof active==='boolean'&&b.IsActive()!==active)b.SetActive(active);
   }
-  const targets=new Map(objects().map(([path,o])=>[JSON.stringify(path),o]));
+  const targets=d.props.length?new Map(objects().map(([path,o])=>[JSON.stringify(path),o])):new Map();
   for(const [path,values] of d.props){const o=targets.get(JSON.stringify(path));if(!o||!values)continue;
    for(const k of flags)if(Object.hasOwn(values,k)&&typeof values[k]===typeof o[k])o[k]=values[k];
   }
@@ -187,6 +205,10 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
  }
  setInterval(()=>{
   const game=window.icefireGame;if(!game?.isBooted)return;
+  // Both physical keyboards and the external touch buttons use keyboard keys.
+  if(game.settings&&game.settings.controls!=='keyboard'){
+   game.settings.controls='keyboard';game.settingsSignal?.dispatch('controls');
+  }
   if(!game.state.icefireHook){
    const start=game.state.start;game.state.icefireHook=true;
    game.state.start=function(...args){

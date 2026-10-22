@@ -55368,7 +55368,7 @@ var __extends =
 				(m = {
 					width: window.innerWidth || $(window).width(),
 					height: window.innerHeight || $(window).height(),
-					renderer: h.CANVAS,
+					renderer: h.AUTO,
 					parent: "container",
 					transparent: !1,
 					multiTexture: !1,
