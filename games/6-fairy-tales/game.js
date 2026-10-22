@@ -47703,6 +47703,7 @@ box2d.b2World.prototype.CreateBody = function(a) {
 	this.IsLocked())
 		return null;
 	var b = new box2d.b2Body(a,this);
+ b.icefireId = this.icefireNextId = (this.icefireNextId || 0) + 1;
 	return b.m_prev = null,
 	b.m_next = this.m_bodyList,
 	this.m_bodyList && (this.m_bodyList.m_prev = b),

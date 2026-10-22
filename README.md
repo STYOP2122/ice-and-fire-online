@@ -1,84 +1,27 @@
-# Fireboy and Watergirl - Play Online
+# Огонёк и Капелька — игра по сети
 
-森林冰火人全系列 (1-6) 在线游玩
+Шесть частей игры на русском языке, сенсорные SVG-кнопки и комнаты с ID из трёх цифр.
 
-> **[Play Online / 在线玩](https://waterfire.p.wyf9.top/)**
+## Как играть
 
-## About
+Откройте одну и ту же часть игры на двух устройствах. Первый игрок создаёт комнату и сообщает ID второму. Второй вводит ID и подключается. Создатель комнаты выбирает уровень и играет за Огонька, гость — за Капельку.
 
-HTML5 version of the Fireboy and Watergirl game series (1-6), deployed as a static site. Supports both desktop keyboard and mobile touch controls.
+На компьютере: Огонёк — стрелки, Капелька — W A D. На телефоне: движение слева, прыжок справа.
 
-基于 HTML5 的森林冰火人游戏全系列在线版，支持桌面键盘和移动端触屏操作。
+## Сетевая игра
 
-## Games
+Видео и звук не передаются. На обоих устройствах работает локальная копия игры с исходными ресурсами и разрешением экрана устройства. WebRTC DataChannel передаёт нажатия, переходы между уровнями, положения и скорости физических тел, состояния предметов. Устройство создателя комнаты задаёт состояние игры и периодически корректирует вторую копию.
 
-| # | Name | Temple |
-|---|------|--------|
-| 1 | Forest Temple | 森林神庙 |
-| 2 | Light Temple | 光明神庙 |
-| 3 | Ice Temple | 寒冰圣殿 |
-| 4 | Crystal Temple | 水晶殿 |
-| 5 | Elements | 元素 |
-| 6 | Fairy Tales | 童话 |
+Свой игровой сервер не нужен. Для поиска комнаты используется публичный сервис сигнализации PeerJS; затем данные идут напрямую между браузерами. Некоторые сети блокируют прямые WebRTC-соединения. При отключении создателя комната закрывается.
 
-## Controls
+Новая синхронизация требует проверки на реальных устройствах, особенно сложных механизмов и шестой части. Автоматические игровые проверки не запускались по просьбе владельца.
 
-**Desktop:**
+## Публикация
 
-| Character | Jump | Left | Right |
-|-----------|------|------|-------|
-| Watergirl | W | A | D |
-| Fireboy | Arrow Up | Arrow Left | Arrow Right |
+GitHub Actions публикует статический сайт в GitHub Pages после обновления main. Локально можно запустить `python -m http.server 8080` и открыть localhost:8080.
 
-**Mobile:** Virtual D-pad buttons appear automatically on touch devices.
+## Источники и права
 
-## Project Structure
+Основано на https://github.com/wyf9/Fireboy-and-Watergirl и https://github.com/1224HuangJin/Fireboy-and-Watergirl. Исходная история и LICENSE сохранены. Ресурсы игры принадлежат их правообладателям; проект предназначен для некоммерческого обучения и экспериментов.
 
-```
-index.html              # Main game selection page
-games/
-  lib/
-    require.js          # Shared module loader
-    touch-controls.js   # Mobile touch controls
-  sw.js                 # Service Worker (shared asset redirect)
-  shared-assets/        # Deduplicated common assets
-  1-forest-temple/      # Game 1
-  2-light-temple/       # Game 2
-  3-ice-temple/         # Game 3
-  4-crystal-temple/     # Game 4
-  5-elements/           # Game 5
-  6-fairy-tales/        # Game 6
-tools/                  # Build & utility scripts
-  restore-assets.sh     # Restore per-game asset copies (remove SW dependency)
-  *.py                  # HAR extraction scripts
-img/                    # Main page assets
-```
-
-## Shared Assets & Service Worker
-
-Identical assets across games (audio, sprites, fonts, etc.) are stored once in `games/shared-assets/` to reduce repository size. A Service Worker (`games/sw.js`) transparently redirects asset requests to the shared location.
-
-To restore standalone per-game copies and remove the Service Worker:
-
-```bash
-bash tools/restore-assets.sh
-```
-
-## Source Repositories
-
-This project is based on game resources from:
-
-- [1224HuangJin/Fireboy-and-Watergirl](https://github.com/1224HuangJin/Fireboy-and-Watergirl) - Game deployment & portal page
-- [yezhiyi9670/fireboy-and-watergirl-grabber](https://github.com/yezhiyi9670/fireboy-and-watergirl-grabber) - Original HAR grabber scripts
-
-See [README.original.md](README.original.md) for the original README.
-
-## Disclaimer
-
-This project is for non-commercial educational and testing purposes only. All game assets belong to their respective owners.
-
-本项目仅供非商业性学习与研究使用。所有游戏资源版权归原作者所有。
-
-## License
-
-[MIT](LICENSE)
+PeerJS 1.5.5 распространяется по MIT: https://github.com/peers/peerjs.

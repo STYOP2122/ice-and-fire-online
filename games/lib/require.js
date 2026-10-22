@@ -2140,3 +2140,18 @@ var requirejs, require, define;
     //Set up with config info.
     req(cfg);
 }(this));
+
+// Identify state classes so the second device can load the same state locally.
+(function () {
+ var original = window.define;
+ function tagged() {
+  var args = Array.prototype.slice.call(arguments), id=args[0], index=args.length-1, factory=args[index];
+  if(typeof id === 'string' && typeof factory === 'function')args[index]=function(){
+   var result=factory.apply(this,arguments);
+   if(typeof result==='function')result.icefireModule=id;
+   return result;
+  };
+  return original.apply(this,args);
+ }
+ tagged.amd=original.amd;window.define=tagged;
+})();
