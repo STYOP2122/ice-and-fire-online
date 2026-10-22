@@ -8,9 +8,11 @@
  #room-bar{position:fixed;top:34px;left:50%;transform:translateX(-50%);z-index:10000;background:#14212eee;color:white;border:1px solid #46576b;border-radius:12px;padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:96vw;font:13px Arial}
  #room-bar button,#room-bar input{padding:9px;border:1px solid #58708a;border-radius:7px;background:#223449;color:white;font:inherit}#room-id{width:125px}#room-status{max-width:420px}#room-bar [hidden]{display:none}
  #remote-game{position:fixed;inset:0;width:100%;height:100%;object-fit:contain;background:black;z-index:9000}
- .tc-pad{z-index:9998!important} .tc-btn{width:clamp(44px,9vw,76px)!important;height:clamp(44px,9vw,76px)!important;line-height:clamp(44px,9vw,76px)!important;font-size:24px!important;border-radius:14px!important}.tc-label{font-size:12px!important;color:white!important}
- body[data-room-role="host"] .tc-pad-left,body[data-room-role="guest"] .tc-pad-right{display:none!important}
- @media(max-height:500px){#room-bar{top:28px;padding:4px;font-size:11px}#room-status{max-width:230px}.tc-pad{bottom:8px!important}}
+ body[data-game-active="true"] #room-bar{display:none}
+ #btn-fullscreen{display:none!important}
+ #btn-back{z-index:10001;padding:10px 14px;border:1px solid #ffffff30;border-radius:0 0 14px 0;background:#14212ecc;color:#fff;backdrop-filter:blur(8px);font:600 13px Arial}
+ #btn-back svg{width:18px;height:18px;vertical-align:middle;margin-right:6px}
+ @media(max-height:500px){#room-bar{top:28px;padding:4px;font-size:11px}#room-status{max-width:230px}}
  `;document.head.append(css);
  const $=id=>document.getElementById(id);let peer,conn,call,stream,video,role='',timer,heartbeat,lastSeen=0;
  const down=new Set(), remoteDown=new Set();let localPaused=false,audioOut;
@@ -19,7 +21,7 @@
  function release(){remoteDown.forEach(c=>key(c,'keyup'));remoteDown.clear();}
  function send(d){if(conn?.open)conn.send(d);}
  function cleanup(message='Вы вышли из комнаты. Можно играть на одном устройстве.'){
-  clearTimeout(timer);clearInterval(heartbeat);release();down.clear();role='';delete document.body.dataset.roomRole;
+  clearTimeout(timer);clearInterval(heartbeat);release();down.clear();role='';delete document.body.dataset.roomRole;delete document.body.dataset.gameActive;
   const old=peer;peer=null;conn=null;old?.destroy();call?.close();call=null;stream?.getTracks().forEach(t=>t.stop());stream=null;video?.remove();video=null;
   if(audioOut){try{window.icefireGame?.sound.masterGain.disconnect(audioOut);}catch(_){}audioOut=null;}
   if(localPaused&&window.icefireGame){window.icefireGame.paused=false;window.icefireGame.sound.mute=false;}localPaused=false;
@@ -36,6 +38,7 @@
   c.on('open',()=>{clearTimeout(timer);lastSeen=Date.now();heartbeat=setInterval(()=>{send({t:'ping'});if(role==='host'&&Date.now()-lastSeen>2500)release();},700);});
   c.on('data',d=>{
    if(!d||typeof d!=='object')return;lastSeen=Date.now();
+   if(d.t==='scene'&&role==='guest'&&typeof d.active==='boolean')document.body.dataset.gameActive=String(d.active);
    if(d.t==='busy'){cleanup('В комнате уже два игрока.');return;}
    if(d.t==='reset'&&role==='host')release();
    if(d.t==='key'&&role==='host'&&[65,68,87].includes(d.c)&&typeof d.on==='boolean'){
@@ -81,5 +84,13 @@
  window.addEventListener('blur',()=>{down.clear();send({t:'reset'});release();});
  document.addEventListener('visibilitychange',()=>{if(document.hidden){down.clear();send({t:'reset'});release();}});
  $('room-leave').onclick=()=>cleanup();$('room-copy').onclick=async()=>{try{await navigator.clipboard.writeText($('room-id').value);status('ID скопирован. Отправьте его другу и выберите одну и ту же часть игры.');}catch(_){status('Скопируйте ID из поля комнаты.');}};
- window.addEventListener('beforeunload',()=>peer?.destroy());
+ const menu=$('btn-back');if(menu)menu.innerHTML='<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 6h16M4 12h16M4 18h16"/></svg>Меню';
+ setInterval(()=>{
+  if(role==='guest')return;
+  const state=window.icefireGame?.state?.current;
+  const active=['level','endGame','gameComplete'].includes(state);
+  document.body.dataset.gameActive=String(active);
+  if(role==='host')send({t:'scene',active});
+ },300);
+ window.addEventListener('beforeunload' ,()=>peer?.destroy());
 })();
