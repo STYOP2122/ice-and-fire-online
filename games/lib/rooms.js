@@ -2,7 +2,7 @@
 (() => {
  'use strict';
  const bar=document.createElement('section');bar.id='room-bar';
- bar.innerHTML='<button id="room-create">Создать комнату</button><input id="room-id" aria-label="ID комнаты" placeholder="ID комнаты" maxlength="16"><button id="room-join">Подключиться</button><button id="room-leave" hidden>Выйти</button><button id="room-copy" hidden>Скопировать ID</button><span id="room-status" role="status">На одном устройстве: Огонёк — стрелки, Капелька — W A D</span>';
+ bar.innerHTML='<button id="room-create">Создать комнату</button><input id="room-id" aria-label="ID комнаты" placeholder="000–999" maxlength="3" inputmode="numeric" pattern="[0-9]{3}"><button id="room-join">Подключиться</button><button id="room-leave" hidden>Выйти</button><button id="room-copy" hidden>Скопировать ID</button><span id="room-status" role="status">На одном устройстве: Огонёк — стрелки, Капелька — W A D</span>';
  document.body.append(bar);
  const css=document.createElement('style');css.textContent=`
  #room-bar{position:fixed;top:34px;left:50%;transform:translateX(-50%);z-index:10000;background:#14212eee;color:white;border:1px solid #46576b;border-radius:12px;padding:8px;display:flex;gap:6px;align-items:center;flex-wrap:wrap;justify-content:center;width:max-content;max-width:96vw;font:13px Arial}
@@ -50,9 +50,9 @@
   const canvas=document.querySelector('canvas');if(!canvas?.captureStream){status('Дождитесь загрузки игры. Для комнат нужен браузер с поддержкой WebRTC.');return;}
   if(!begin('host'))return;
   if(window.icefireGame)window.icefireGame.stage.disableVisibilityChange=true;
-  const id=crypto.getRandomValues(new Uint32Array(2)).reduce((s,n)=>s+n.toString(36),'').slice(0,10).toUpperCase();
+  const id=String(crypto.getRandomValues(new Uint32Array(1))[0] % 1000).padStart(3,'0');
   $('room-id').value=id;$('room-id').disabled=true;status('Создаём комнату…');
-  peer=new Peer('icefire-ru-'+id);peer.on('error',()=>cleanup('Не удалось создать комнату. Проверьте подключение к интернету.'));
+  peer=new Peer('icefire-ru-'+id);peer.on('error',e=>cleanup(e.type==='unavailable-id'?'Этот ID уже занят. Нажмите «Создать комнату» ещё раз.':'Не удалось создать комнату. Проверьте подключение к интернету.'));
   peer.on('open',()=>{clearTimeout(timer);$('room-copy').hidden=false;status('Комната '+id+' · Вы — Огонёк. Ждём Капельку…');});
   peer.on('connection',c=>{
    if(conn){c.on('open',()=>{c.send({t:'busy'});setTimeout(()=>c.close(),200);});return;}
@@ -65,7 +65,7 @@
   });
  };
  $('room-join').onclick=()=>{
-  const id=$('room-id').value.trim().toUpperCase();if(!/^[A-Z0-9]{6,16}$/.test(id)){status('Введите ID, полученный от создателя комнаты.');return;}
+  const id=$('room-id').value.trim().toUpperCase();if(!/^[0-9]{3}$/.test(id)){status('Введите три цифры ID комнаты, например 042.');return;}
   if(!begin('guest'))return;status('Подключаемся к '+id+'…');$('root')?.style.setProperty('visibility','hidden');
   if(window.icefireGame){window.icefireGame.paused=true;window.icefireGame.sound.mute=true;localPaused=true;}
   peer=new Peer();peer.on('error',()=>cleanup('Комната не найдена или сеть блокирует соединение. Проверьте ID.'));
