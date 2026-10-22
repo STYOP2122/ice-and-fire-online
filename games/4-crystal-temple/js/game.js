@@ -10163,7 +10163,7 @@ var main_func = () => {
 			}),
 			(c.Game = function (a, b, d, e, f, g, h, i) {
 				return (
-					(this.id = c.GAMES.push(this) - 1),
+					(this.id = c.GAMES.push(this) - 1, window.icefireGame = this),
 					(this.config = null),
 					(this.physicsConfig = i),
 					(this.parent = ""),
@@ -52823,7 +52823,7 @@ box2d.b2MotorJoint.prototype.GetLinearOffset = function (a) {
 						this.addChild(k),
 						(l = (function (a) {
 							return function (a) {
-								return h5api.progress(a), (j.width = (a / 100) * i), f.crop(j);
+								return (window.h5api && window.h5api.progress(a)), (j.width = (a / 100) * i), f.crop(j);
 							};
 						})(this)),
 						(e = (function (a) {
@@ -52955,30 +52955,30 @@ box2d.b2MotorJoint.prototype.GetLinearOffset = function (a) {
 		define("utils/lang/ch", ["require"], function (a) {
 			var b;
 			return (b = {
-				Play: "开始游戏",
-				"More Games": "更多游戏",
-				Ok: "继续",
-				Continue: "继续",
-				credits_to: "所有学分都会去",
-				Back: "返回",
-				"Level Numbers": "显示关卡数",
-				Paused: "暫停",
-				End: "返回菜单",
-				Retry: "再试一次",
-				Resume: "继续",
-				Menu: "返回菜单",
-				"Game Over": "游戏结束",
-				congratulations: "恭喜！",
-				you_completed: "你完成了比赛",
-				this: "这个",
-				menu: "",
-				level: "级别",
-				not_yet: "这个级别尚不可用",
-				complete_more: "完成更多关卡",
-				in_other_temples: "",
-				to_unlock: "解锁",
-				"Ok!": "继续",
-				unlock_all: "Unlock all levels!",
+				Play: "Играть",
+				"More Games": "Другие игры",
+				Ok: "Хорошо",
+				Continue: "Продолжить",
+				credits_to: "Авторы игры",
+				Back: "Назад",
+				"Level Numbers": "Номера уровней",
+				Paused: "Пауза",
+				End: "В меню",
+				Retry: "Заново",
+				Resume: "Продолжить",
+				Menu: "Меню",
+				"Game Over": "Игра окончена",
+				congratulations: "Поздравляем!",
+				you_completed: "Вы прошли игру!",
+				this: "Этот",
+				menu: "меню",
+				level: "уровень",
+				not_yet: "пока недоступен",
+				complete_more: "Пройдите больше уровней",
+				in_other_temples: "в других храмах",
+				to_unlock: "для открытия",
+				"Ok!": "Хорошо!",
+				unlock_all: "Открыть все уровни",
 			});
 		});
 	}.call(this),
@@ -54135,7 +54135,7 @@ var __extends =
 				(m = {
 					width: window.innerWidth || $(window).width(),
 					height: window.innerHeight || $(window).height(),
-					renderer: h.AUTO,
+					renderer: h.CANVAS,
 					parent: "container",
 					transparent: !1,
 					multiTexture: !1,

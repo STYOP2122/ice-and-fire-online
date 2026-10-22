@@ -1,10 +1,10 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="ru">
 <head>
     <meta charset="utf-8">
     <script>
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("../sw.js", { scope: "/games/" })
+        navigator.serviceWorker.register("../sw.js", { scope: new URL("../", location.href).pathname })
             .then(function (reg) {
                 if (reg.installing && !navigator.serviceWorker.controller) {
                     reg.installing.addEventListener("statechange", function () {
@@ -15,7 +15,7 @@
     }
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0, shrink-to-fit=no">
-    <title>Fireboy &amp; Watergirl in The Crystal Temple</title>
+    <title>Огонёк и Капелька — Хрустальный храм</title>
     <link rel="icon" sizes="60x60" href="../../img/icon.png">
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
@@ -42,7 +42,7 @@
 <body>
     <script>
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("../sw.js", { scope: "/games/" })
+        navigator.serviceWorker.register("../sw.js", { scope: new URL("../", location.href).pathname })
             .then(function (reg) {
                 if (reg.installing && !navigator.serviceWorker.controller) {
                     reg.installing.addEventListener("statechange", function () {
@@ -53,6 +53,7 @@
     }
     </script>
 
+    <script src="../lib/ru.js"></script>
     <script data-main="js/game.js" src="../lib/require.js"></script>
 
     <div id="root">
@@ -60,12 +61,12 @@
         <div id="hammer"></div>
     </div>
 
-    <a id="btn-back" class="game-ui-btn" href="../../">&#8592; Menu</a>
-    <button id="btn-fullscreen" class="game-ui-btn" onclick="document.documentElement.requestFullscreen()">Fullscreen</button>
+    <a id="btn-back" class="game-ui-btn" href="../../">&#8592; Меню</a>
+    <button id="btn-fullscreen" class="game-ui-btn" onclick="document.documentElement.requestFullscreen()">На весь экран</button>
 
     <script>
     if ("serviceWorker" in navigator) {
-        navigator.serviceWorker.register("../sw.js", { scope: "/games/" })
+        navigator.serviceWorker.register("../sw.js", { scope: new URL("../", location.href).pathname })
             .then(function (reg) {
                 if (reg.installing && !navigator.serviceWorker.controller) {
                     reg.installing.addEventListener("statechange", function () {
@@ -76,5 +77,5 @@
     }
     </script>
     <script src="../lib/touch-controls.js"></script>
-</body>
+<script src="../lib/peerjs.min.js"></script><script src="../lib/rooms.js"></script></body>
 </html>

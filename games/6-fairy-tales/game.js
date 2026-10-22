@@ -12829,7 +12829,7 @@ function() {
 		}
 	}),
 	c.Game = function(a, b, d, e, f, g, h, i) {
-		return this.id = c.GAMES.push(this) - 1,
+		return this.id = c.GAMES.push(this) - 1, window.icefireGame = this,
 		this.config = null,
 		this.physicsConfig = i,
 		this.parent = "",
@@ -71653,7 +71653,7 @@ function() {
 			b.prototype.locale = function(a) {
 				var b, c;
 				return c = JSON.parse(localStorage.getItem("fb-fairytales:settings")),
-				b = c && c.lang,
+				b = "ru",
 				b && this.dicts[b] || (b = Object.keys(this.dicts)[0]),
 				"" === a ? "" : this.dicts[b][a] || a + "|no-locale"
 			}
@@ -73047,7 +73047,7 @@ function() {
 		l = {
 			width: window.innerWidth || $(window).width(),
 			height: window.innerHeight || $(window).height(),
-			renderer: h.AUTO,
+			renderer: h.CANVAS,
 			parent: "container",
 			transparent: !1,
 			multiTexture: !1,

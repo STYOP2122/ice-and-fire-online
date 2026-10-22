@@ -96,7 +96,7 @@ self.addEventListener('fetch', function (e) {
     // Only handle same-origin requests
     if (url.origin !== self.location.origin) return;
 
-    var match = url.pathname.match(GAME_DIR_RE);
+    var match = url.pathname.slice(new URL(self.registration.scope).pathname.length - 7).match(GAME_DIR_RE);
     if (!match) return;
 
     var gameDir = match[1]; // e.g. /games/1-forest-temple/
@@ -111,7 +111,7 @@ self.addEventListener('fetch', function (e) {
     }
 
     if (shouldRedirect) {
-        var newUrl = url.origin + '/games/shared-assets/' + assetPath + url.search;
+        var newUrl = new URL('shared-assets/', self.registration.scope).href + assetPath + url.search;
         e.respondWith(fetch(newUrl, { mode: e.request.mode, credentials: e.request.credentials }));
     }
 });

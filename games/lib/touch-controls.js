@@ -126,7 +126,8 @@
     }
 
     function makeBtn(text, code, colorClass, isJump) {
-        var btn = document.createElement('div');
+        var btn = document.createElement('button');
+        btn.setAttribute('aria-label', isJump ? 'Прыжок' : (code === 65 || code === 37 ? 'Влево' : 'Вправо')); 
         btn.className = 'tc-btn tc-btn-' + colorClass + (isJump ? ' tc-btn-jump' : '');
         btn.textContent = text;
         btn.setAttribute('data-key', code);
@@ -156,14 +157,15 @@
         return btn;
     }
 
+    window.addEventListener('blur', function () { Object.keys(pressed).forEach(function(c) { release(Number(c)); }); document.querySelectorAll('.tc-btn.active').forEach(function(b){b.classList.remove('active');}); });
     function init() {
-        makePad('left', 'water', 'WATERGIRL', {
-            jump:  { text: 'W',  code: KEYS.W },
-            left:  { text: 'A',  code: KEYS.A },
-            right: { text: 'D',  code: KEYS.D }
+        makePad('left', 'water', 'КАПЕЛЬКА', {
+            jump:  { text: '▲',  code: KEYS.W },
+            left:  { text: '◀',  code: KEYS.A },
+            right: { text: '▶',  code: KEYS.D }
         });
 
-        makePad('right', 'fire', 'FIREBOY', {
+        makePad('right', 'fire', 'ОГОНЁК', {
             jump:  { text: '\u25B2', code: KEYS.UP },
             left:  { text: '\u25C0', code: KEYS.LEFT },
             right: { text: '\u25B6', code: KEYS.RIGHT }
