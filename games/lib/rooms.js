@@ -69,7 +69,7 @@ $('room-create').disabled=false;$('room-join').disabled=false;$('room-id').disab
   });
  };
  $('room-join').onclick=()=>{
-  const id=$('room-id').value.trim().toUpperCase();if(!/^[0-9]{3}$/.test(id)){status('Введите три цифры ID комнаты, например 042.');return;}
+  const id=$('room-id').value.replace(/\s/g,'').normalize('NFKC');if(!/^[0-9]{3}$/.test(id)){status('Введите три цифры ID комнаты, например 042.');return;}
   if(!window.icefireGame?.isBooted){status('Дождитесь загрузки игры.');return;}
   if(!begin('guest'))return;status('Подключаемся к '+id+'…');
   peer=new Peer();peer.on('error',()=>cleanup('Комната не найдена или сеть блокирует соединение. Проверьте ID.'));
